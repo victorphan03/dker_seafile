@@ -1,0 +1,51 @@
+version: '2.0'
+
+services:
+  db:
+    image: mariadb:10.5
+    container_name: seafile-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_LOG_CONSOLE: "true"
+      MYSQL_DATABASE: seafile_db       # Tạo sẵn database cho Seafile
+      MYSQL_USER: seafile_user         # User DB riêng
+      MYSQL_PASSWORD: seafile_pass     # Mật khẩu user DB
+    volumes:
+      - ./data/mariadb:/var/lib/mysql
+    networks:
+      - seafile-net
+
+  memcached:
+    image: memcached:alpine
+    container_name: seafile-memcached
+    command: memcached -m 256          # Thay entrypoint bằng command cho dễ hiểu
+    networks:
+      - seafile-net
+          
+  seafile:
+    image: seafileltd/seafile-mc:latest
+    container_name: seafile
+    ports:
+      - "8080:80"
+    volumes:
+      - ./data/app:/shared
+    environment:
+      DB_HOST: db
+      DB_ROOT_PASSWD: password
+      DB_NAME: seafile_db
+      DB_USER: seafile_user
+      DB_PASSWD: seafile_pass
+      TIME_ZONE: Etc/UTC
+      SEAFILE_ADMIN_EMAIL: me@example.com
+      SEAFILE_ADMIN_PASSWORD: password
+      SEAFILE_SERVER_LETSENCRYPT: "false"
+      SEAFILE_SERVER_HOSTNAME: cloud.victorphan.net
+      MEMCACHED_HOST: memcached
+    depends_on:
+      - db
+      - memcached
+    networks:
+      - seafile-net
+
+networks:
+  seafile-net:
